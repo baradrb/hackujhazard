@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hackuj hazard</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Play" rel="stylesheet">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 80%;
+      }
+      #controls {
+        height: 15%;
+        padding: 20px;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Play', sans-serif;
+      }
+      h1 {
+        padding: 0px;
+        margin: 0px;
+      }
+      .label {
+        color: gray;
+      }
+      a {
+        float: right
+      }
+
+
+input[type=range] {
+  -webkit-appearance: none;
+  margin: 13.8px 0;
+  width: 500px;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #3071a9;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+input[type=range]::-webkit-slider-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -14px;
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #367ebd;
+}
+input[type=range]::-moz-range-track {
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #3071a9;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+input[type=range]::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+}
+input[type=range]::-ms-track {
+  height: 8.4px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+input[type=range]::-ms-fill-lower {
+  background: #2a6495;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]::-ms-fill-upper {
+  background: #3071a9;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]::-ms-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  height: 8.4px;
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: #3071a9;
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: #367ebd;
+}
+
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <a href="https://github.com/baradrb/hackujhazard">Fork on GitHub</a>
+      <h1>Hackuj hazard</h1><br />
+      <span class="label">Vyhlášky, které upravují:</span>&nbsp;&nbsp;&nbsp;
+      <input type="checkbox" id="vhp"> <label for="vhp">Výherní hrací přístroje</label>
+      <input type="checkbox" id="ivt"> <label for="ivt">Interaktivní videoloterijní terminály</label>
+      <input type="checkbox" id="live"> <label for="live">Živé hry</label>
+      <input type="checkbox" id="other"> <label for="other">Ostatní</label>
+      <input type="checkbox" id="regul"> <label for="regul">V celé obci</label>
+      <br />
+      <span class="label">Počet povolených hazardních her na 10k obyvatel:</span>&nbsp;&nbsp;&nbsp;
+      <input id="limit" type="range" min="0" max="100" step="1" value="100" />
+      <span id="limitValue">100</span>
+    </div>
+    <div id="map"></div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script>
+      var map;
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 49.860079, lng: 15.286253},
+          zoom: 7
+        });
+        map.data.loadGeoJson('towns.geojson', null, function(features) {
+          downloadData(true)
+        });
+        map.data.setStyle(function(feature) {
+          var percent = 100-feature.getProperty("podil_obyv_exek");
+          var color = "hsl(0, 100%, "+percent+"%)";
+          return {
+            fillColor: color,
+            strokeWeight: 1,
+            fillOpacity : 0.8
+          };
+        });
+        var infoWindow = new google.maps.InfoWindow();
+        map.data.addListener('mouseover', function(event) {
+          var percent = Math.round(event.feature.getProperty("podil_obyv_exek"))
+          var town = event.feature.getProperty("b")
+          infoWindow.setContent("<b>"+town+"</b><br />Podíl lidí v exekuci: "+percent+" %");
+          infoWindow.setPosition(new google.maps.LatLng(event.feature.getProperty('y'), event.feature.getProperty('x')));
+          infoWindow.open(map)
+        });
+      }
+
+      function downloadData(first) {
+        var limit = $("#limit").val()
+        var reload = first? 1 : 0
+        var URL = "http://40.76.84.142:8888/update?vhp="+getCheckedValue("vhp")+"&ivt="+getCheckedValue("ivt")+"&live="+getCheckedValue("live")+"&other="+getCheckedValue("other")+"&limit="+limit+"&reload="+reload+"&regul_vsude="+getCheckedValue("regul")
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET",URL,true);
+        xhr.onreadystatechange = function() {
+          if ( xhr.readyState == xhr.DONE ) {
+            if ( xhr.status == 200 ) {
+              var raw = xhr.responseText.replace(/\\/g, "")
+              var data = JSON.parse(raw.substring(1, raw.length-1));
+              map.data.forEach(function(feature){
+                try {
+                  var ruian = feature.getProperty("ruian").toString()
+                  var exek = data[ruian]["podil_obyv_exek"]
+                  feature.setProperty("podil_obyv_exek", exek)
+                } catch (error) {
+                  feature.setProperty("podil_obyv_exek", 0)
+                }
+              })
+            }
+          }
+        }
+        xhr.send();
+      }
+
+      function getCheckedValue(id) {
+        var checkbox = $("#"+id)
+        if (checkbox.prop("indeterminate")) {
+          return -1
+        } else {
+          if (checkbox.prop("checked")) {
+            return 1
+          } else {
+            return 0
+          }
+        }
+      }
+
+      function setupCheckbox(id) {
+        $("#"+id).prop("indeterminate", true)
+        $("#"+id).change(function() {
+          downloadData(false)
+      })
+      }
+
+      setupCheckbox("vhp")
+      setupCheckbox("ivt")
+      setupCheckbox("live")
+      setupCheckbox("other")
+      setupCheckbox("regul")
+
+      $('#limit').change( function() {
+        var newValue = this.value;     
+        $('#limitValue').html(newValue);
+        downloadData(false)
+      })
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDz5dBMUhLQkSAMxqiGi4w66c4RJC0OQYM&callback=initMap"
+    async defer></script>
+  </body>
+</html>
