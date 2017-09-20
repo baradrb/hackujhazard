@@ -28,7 +28,7 @@ def retrain_models():
     clf_gb = ensemble.GradientBoostingRegressor(**params)
 
     # fit GB model
-    clf_gb.fit(data[xcols], data[ycols[0])
+    clf_gb.fit(data[xcols], data[ycols[0]])
                                 
     fileHandle1 = open('gb_model.pickle', "wb")
     pickle.dump(clf_gb, fileHandle1)
